@@ -4,10 +4,10 @@ export class Expenses {
   amount: number;
   date: Date;
 
-  constructor(id: string, description: string, amout: number, date: Date) {
+  constructor(id: string, description: string, amount: number, date: Date) {
     this.id = id;
     this.description = description;
-    this.amount = amout;
+    this.amount = amount;
     this.date = date;
   }
 }

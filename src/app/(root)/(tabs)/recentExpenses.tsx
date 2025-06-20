@@ -2,7 +2,6 @@ import { StyleSheet, Text, View } from "react-native";
 import React, { useContext } from "react";
 import ExpensesDetails from "@/src/components/ExpensesDetails";
 import { colors } from "@/src/constant/colors";
-import { dummyExpenses } from "@/src/data/dummyData";
 import { ExpenseContext } from "@/src/context/expensesContext";
 import ExpensesListView from "@/src/components/ExpensesListView";
 

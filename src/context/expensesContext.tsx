@@ -1,16 +1,30 @@
-import { Children, createContext, useReducer } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from "react";
 import { Expenses } from "../model/expenses";
-import { dummyExpenses } from "../data/dummyData";
+import { supabase } from "../app/_layout";
+import { Alert } from "react-native";
+import { AuthContext } from "./authContext";
+
 type expenseDetail = { description: string; amount: number; date: Date };
 
 interface expensesType {
   expenses: Expenses[];
-  addExpenses: (data: expenseDetail) => any;
-  removeExpenses: (id: string) => any;
-  updateExpenses: (id: string, data: expenseDetail) => any;
+  expenseData: Expenses[];
+  setExpenseData: React.Dispatch<React.SetStateAction<Expenses[]>>;
+  addExpenses: (data: Expenses) => void;
+  removeExpenses: (id: string) => void;
+  updateExpenses: (id: string, data: expenseDetail) => void;
 }
+
 export const ExpenseContext = createContext<expensesType>({
   expenses: [],
+  expenseData: [],
+  setExpenseData: () => {},
   addExpenses: () => {},
   removeExpenses: () => {},
   updateExpenses: () => {},
@@ -19,23 +33,38 @@ export const ExpenseContext = createContext<expensesType>({
 function expensesReduce(
   state: Expenses[],
   action: { type: string; payload: any }
-) {
+): Expenses[] {
   switch (action.type) {
     case "ADD":
-      let id = new Date().toString() + Math.random().toString();
-      return [{ id, ...action.payload.data }, ...state];
+      // const id = new Date().toISOString() + Math.random().toString();
+      return [
+        new Expenses(
+          action.payload.data.id,
+          action.payload.data.description,
+          action.payload.data.amount,
+          action.payload.data.date
+        ),
+        ...state,
+      ];
+
     case "DELETE":
-      console.log(`Deleting ${action.payload.id}`);
       return state.filter((expense) => expense.id !== action.payload.id);
+
     case "UPDATE":
-      const index = state.findIndex(
-        (expense) => expense.id === action.payload.id
+      return state.map((expense) =>
+        expense.id === action.payload.id
+          ? new Expenses(
+              expense.id,
+              action.payload.data.description,
+              action.payload.data.amount,
+              action.payload.data.date
+            )
+          : expense
       );
-      const content = state[index];
-      const updateContent = { ...content, ...action.payload.data };
-      const updatedState = [...state];
-      updatedState[index] = updateContent;
-      return updatedState;
+
+    case "SET":
+      return action.payload.data;
+
     default:
       return state;
   }
@@ -46,24 +75,64 @@ export function ExpenseContextProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [expenseState, dispatch] = useReducer(expensesReduce, dummyExpenses);
+  const { userDetails } = useContext(AuthContext);
+
+  const [expenseData, setExpenseData] = useState<Expenses[]>([]);
+  const [expenseState, dispatch] = useReducer(expensesReduce, []);
+
+  // Fetch data from Supabase and sync both reducer and local state
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      if (!userDetails?.user.id) return;
+
+      const { data, error } = await supabase
+        .from("expenses")
+        .select()
+        .eq("userId", userDetails.user.id);
+
+      if (data) {
+        const mapped: Expenses[] = data.map((item) => {
+          return new Expenses(
+            item.id.toString(),
+            item.description,
+            item.amount,
+            new Date(item.created_at)
+          );
+        });
+
+        setExpenseData(mapped);
+        dispatch({ type: "SET", payload: { data: mapped } });
+      }
+
+      if (error) {
+        Alert.alert(error.name, error.message);
+      }
+    };
+
+    fetchExpenses();
+  }, [userDetails]);
 
   function addExpenses(data: expenseDetail) {
-    dispatch({ type: "ADD", payload: { data: data } });
+    dispatch({ type: "ADD", payload: { data } });
   }
-  function deleteExpenses(id: string) {
-    dispatch({ type: "DELETE", payload: { id: id } });
+
+  function removeExpenses(id: string) {
+    dispatch({ type: "DELETE", payload: { id } });
   }
+
   function updateExpenses(id: string, data: expenseDetail) {
-    dispatch({ type: "UPDATE", payload: { id: id, data: data } });
+    dispatch({ type: "UPDATE", payload: { id, data } });
   }
 
   const contextValues: expensesType = {
     expenses: expenseState,
-    addExpenses: addExpenses,
-    removeExpenses: deleteExpenses,
-    updateExpenses: updateExpenses,
+    expenseData,
+    setExpenseData,
+    addExpenses,
+    removeExpenses,
+    updateExpenses,
   };
+
   return (
     <ExpenseContext.Provider value={contextValues}>
       {children}

@@ -3,7 +3,6 @@ import React, { useContext } from "react";
 import { colors } from "@/src/constant/colors";
 import ExpensesDetails from "@/src/components/ExpensesDetails";
 import ExpensesListView from "@/src/components/ExpensesListView";
-import { dummyExpenses } from "@/src/data/dummyData";
 import { ExpenseContext } from "@/src/context/expensesContext";
 
 export default function Index() {

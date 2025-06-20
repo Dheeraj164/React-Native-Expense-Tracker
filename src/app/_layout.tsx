@@ -1,39 +1,54 @@
-import { Stack } from "expo-router";
-import { colors } from "../constant/colors";
-import { ExpenseContextProvider } from "../context/expensesContext";
-import { StatusBar } from "expo-status-bar";
+import { StyleSheet, Text, View } from "react-native";
+import React, { useContext, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, Slot, useSegments } from "expo-router";
+import { AuthContext, AuthContextProvider } from "../context/authContext";
 
-export default function Layout() {
-  return (
-    <>
-      <StatusBar style="light" />
-      <ExpenseContextProvider>
-        <Stack
-          screenOptions={{
-            headerTitleAlign: "center",
-            headerStyle: { backgroundColor: colors.primary400 },
-            contentStyle: { backgroundColor: "" },
-            headerTintColor: "white",
-          }}>
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              headerTitleAlign: "center",
-              title: "Tab",
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="manageExpenses"
-            options={{
-              headerTitleAlign: "center",
-              title: "ManageExpenses",
-              presentation: "modal",
-              // headerShown: false,
-            }}
-          />
-        </Stack>
-      </ExpenseContextProvider>
-    </>
-  );
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL as string,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string,
+  {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
+export function Main() {
+  const { setUserDetails, userDetails } = useContext(AuthContext);
+  const segment = useSegments();
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") {
+        setUserDetails(session);
+      }
+      if (event === "INITIAL_SESSION" && session != null) {
+        setUserDetails(session);
+      }
+      if (event === "SIGNED_OUT") {
+        console.log(event);
+        setUserDetails(null);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (userDetails && segment[0] === "(auth)") {
+      // router.replace("/(root)");
+      router.replace("/(root)");
+    } else if (userDetails && segment[0] !== "(auth)") {
+      router.replace("/(auth)");
+    }
+  }, [userDetails]);
+  return <Slot />;
 }
+
+// Enclosing main with context Provider
+export default function Layout() {
+  return <AuthContextProvider children={<Main />} />;
+}
+
+const styles = StyleSheet.create({});
