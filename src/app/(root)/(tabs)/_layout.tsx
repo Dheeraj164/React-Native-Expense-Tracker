@@ -38,9 +38,9 @@ export default function Layout() {
           headerRight: () => (
             <>
               <Pressable
-                onPress={async () => {
+                onPress={() => {
                   console.log("pressed logout");
-                  await supabase.auth.signOut();
+                  supabase.auth.signOut();
                 }}>
                 <Ionicons
                   style={{ padding: 15 }}

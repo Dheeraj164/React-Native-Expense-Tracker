@@ -22,6 +22,8 @@ export function Main() {
   const segment = useSegments();
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
+      console.log(event);
+
       if (event === "SIGNED_IN") {
         setUserDetails(session);
       }
@@ -29,7 +31,7 @@ export function Main() {
         setUserDetails(session);
       }
       if (event === "SIGNED_OUT") {
-        console.log(event);
+        // console.log(event);
         setUserDetails(null);
       }
     });
